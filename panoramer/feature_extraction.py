@@ -59,7 +59,7 @@ def detect_features(image: cv2.typing.MatLike, method: str = None, k: float = 0.
     return keypoints[:, ::-1]
 
 
-def compute_descriptors(image: cv2.typing.MatLike, keypoints: np.ndarray, method: str = None, patch_size: int = 16) -> np.ndarray:
+def wcompute_descriptors(image: cv2.typing.MatLike, keypoints: np.ndarray, method: str = None, patch_size: int = 16) -> np.ndarray:
     '''
     Computes descriptors for the detected keypoints.
 
@@ -118,10 +118,7 @@ def apply_lowe_ratio_test(matches, ratio=0.75):
     return good_matches
 
 
-def match_features(image1: cv2.typing.MatLike, image2: cv2.typing.MatLike,
-                   keypoints1: np.ndarray, keypoints2: np.ndarray,
-                   descriptors1: np.ndarray, descriptors2: np.ndarray,
-                   method: str = None, ratio: float = 0.6) -> list:
+def match_features(descriptors1: np.ndarray, descriptors2: np.ndarray, method: str = None, ratio: float = 0.6) -> list:
     '''
     Matches features between two images using the specified method.
 

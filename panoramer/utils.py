@@ -25,13 +25,6 @@ def resize_image(image: cv2.typing.MatLike, width: int = None, height: int = Non
     return cv2.resize(image, (width, height), interpolation=cv2.INTER_AREA)
 
 
-def blend_images(image1: cv2.typing.MatLike, image2: cv2.typing.MatLike) -> cv2.typing.MatLike:
-    '''
-    Blends two images together to create a seamless transition.
-    '''
-    pass
-
-
 def normalize_brightness_contrast(image: cv2.typing.MatLike, target_brightness: float = 128, target_contrast: float = 50) -> cv2.typing.MatLike:
     '''
     Normalizes brightness and contrast of an image to a target level.
