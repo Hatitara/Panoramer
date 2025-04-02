@@ -59,7 +59,7 @@ def detect_features(image: cv2.typing.MatLike, method: str = None, k: float = 0.
     return keypoints[:, ::-1]
 
 
-def wcompute_descriptors(image: cv2.typing.MatLike, keypoints: np.ndarray, method: str = None, patch_size: int = 16) -> np.ndarray:
+def compute_descriptors(image: cv2.typing.MatLike, keypoints: np.ndarray, method: str = None, patch_size: int = 16) -> np.ndarray:
     '''
     Computes descriptors for the detected keypoints.
 
