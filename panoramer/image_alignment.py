@@ -25,11 +25,10 @@ def compute_homography_dlt(points1: np.ndarray, points2: np.ndarray):
 
     A = np.array(A)
 
-    # Solve for h using SVD (A.h = 0) | Think about implementing it by hand!
-    _, _, V = np.linalg.svd(A)
-    H = V[-1].reshape(3, 3)
+    _, _, Vt = np.linalg.svd(A) # REWRITE FOR CUSTOM !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    H = Vt[-1].reshape(3, 3)
 
-    return H / H[2, 2]  # Normalize H so that H[2,2] = 1
+    return H / H[2, 2]
 
 
 def apply_homography(points: np.ndarray, H: np.ndarray):
@@ -93,7 +92,7 @@ def find_homography(points1: np.ndarray, points2: np.ndarray, method = None) -> 
     :return: Homography matrix.
     '''
     if method is None:
-        H, _ = ransac_homography(points1, points2)  # Your custom function
+        H, _ = ransac_homography(points1, points2)
     elif method == 'RANSAC':
         H, _ = cv2.findHomography(points1, points2, cv2.RANSAC, 5.0)
     elif method == 'LMEDS':

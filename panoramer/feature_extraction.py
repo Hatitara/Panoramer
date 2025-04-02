@@ -36,33 +36,27 @@ def detect_features(image: cv2.typing.MatLike, method: str = None, k: float = 0.
         return np.array([kp.pt for kp in keypoints])
 
     # === Custom Harris Corner Detection ===
-    # Apply Gaussian blur before computing gradients
     blurred = apply_gaussian_blur(gray, kernel_size=3, sigma=1.0)
 
-    # Compute gradients using our custom Sobel filters
     Ix = apply_sobel(blurred, direction='x')
     Iy = apply_sobel(blurred, direction='y')
 
-    # Compute products of derivatives
     Ixx = Ix * Ix
     Iyy = Iy * Iy
     Ixy = Ix * Iy
 
-    # Apply Gaussian filter to smooth results
     Ixx = apply_gaussian_blur(Ixx, kernel_size=3, sigma=1.0)
     Iyy = apply_gaussian_blur(Iyy, kernel_size=3, sigma=1.0)
     Ixy = apply_gaussian_blur(Ixy, kernel_size=3, sigma=1.0)
 
-    # Compute Harris response R
     det_M = (Ixx * Iyy) - (Ixy ** 2)
     trace_M = Ixx + Iyy
     R = det_M - k * (trace_M ** 2)
 
-    # Thresholding and non-maximum suppression
     threshold = 0.01 * R.max()
     keypoints = np.argwhere(R > threshold)
 
-    return keypoints[:, ::-1]  # Return (x, y) coordinates as (x, y)
+    return keypoints[:, ::-1]
 
 
 def compute_descriptors(image: cv2.typing.MatLike, keypoints: np.ndarray, method: str = None, patch_size: int = 16) -> np.ndarray:
@@ -76,18 +70,17 @@ def compute_descriptors(image: cv2.typing.MatLike, keypoints: np.ndarray, method
     '''
     if method == "SIFT":
         sift = cv2.SIFT_create()
-        keypoints_cv2 = [cv2.KeyPoint(x=float(kp[0]), y=float(kp[1]), _size=1) for kp in keypoints]
+        keypoints_cv2 = [cv2.KeyPoint(x=float(kp[0]), y=float(kp[1]), size=1) for kp in keypoints]
         _, descriptors = sift.compute(image, keypoints_cv2)
     elif method == "ORB":
         orb = cv2.ORB_create()
-        keypoints_cv2 = [cv2.KeyPoint(x=float(kp[0]), y=float(kp[1]), _size=1) for kp in keypoints]
+        keypoints_cv2 = [cv2.KeyPoint(x=float(kp[0]), y=float(kp[1]), size=1) for kp in keypoints]
         _, descriptors = orb.compute(image, keypoints_cv2)
     elif method == "SURF":
         surf = cv2.xfeatures2d.SURF_create()
-        keypoints_cv2 = [cv2.KeyPoint(x=float(kp[0]), y=float(kp[1]), _size=1) for kp in keypoints]
+        keypoints_cv2 = [cv2.KeyPoint(x=float(kp[0]), y=float(kp[1]), size=1) for kp in keypoints]
         _, descriptors = surf.compute(image, keypoints_cv2)
     else:
-        # Custom descriptor computation
         descriptors = []
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if len(image.shape) == 3 else image
 
@@ -95,15 +88,12 @@ def compute_descriptors(image: cv2.typing.MatLike, keypoints: np.ndarray, method
             x, y = int(kp[0]), int(kp[1])
             half_size = patch_size // 2
 
-            # Extract patch around keypoint, handling boundaries
             patch = gray[max(0, y - half_size):min(gray.shape[0], y + half_size),
                          max(0, x - half_size):min(gray.shape[1], x + half_size)]
 
-            # Resize to fixed size if needed
             if patch.shape[0] != patch_size or patch.shape[1] != patch_size:
                 patch = cv2.resize(patch, (patch_size, patch_size))
 
-            # Flatten and normalize
             descriptor = patch.flatten().astype(np.float32)
             descriptor /= np.linalg.norm(descriptor) if np.linalg.norm(descriptor) > 0 else 1
             descriptors.append(descriptor)
