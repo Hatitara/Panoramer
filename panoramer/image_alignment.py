@@ -4,7 +4,7 @@ Used to align images based on the detected features.
 import cv2
 import numpy as np
 import random
-
+from .utils import inverse_homography
 def compute_homography_dlt(points1: np.ndarray, points2: np.ndarray):
     '''
     Computes homography using Direct Linear Transform (DLT) method.
@@ -42,7 +42,7 @@ def apply_homography(points: np.ndarray, H: np.ndarray):
     points_homo = np.hstack([points, np.ones((points.shape[0], 1))])
     transformed_points = (H @ points_homo.T).T
     transformed_points /= transformed_points[:, 2].reshape(-1, 1)
-    return transformed_points[:, :2]  # Return (x, y) coordinates
+    return transformed_points[:, :2]
 
 
 def ransac_homography(points1: np.ndarray, points2: np.ndarray, threshold: float = 3.0, iterations: int = 1000):
@@ -104,105 +104,37 @@ def find_homography(points1: np.ndarray, points2: np.ndarray, method = None) -> 
     return H
 
 
+def warp_perspective(image: np.ndarray, H: np.ndarray, output_shape):
+    '''
+    Applies a manual perspective warp to an image using a given homography matrix.
 
+    :param image: Input image as a NumPy array.
+    :param H: 3x3 Homography matrix for the perspective transformation.
+    :param output_shape: Tuple (width, height) specifying the dimensions of the output image.
+    :return: Warped image as a NumPy array with the specified output dimensions.
+    '''
 
-def inverse_homography(H: np.ndarray) -> np.ndarray:
-    """
-    Manually computes the inverse of a 3x3 homography matrix using the determinant and cofactors.
-
-    :param H: A 3x3 homography matrix
-    :return: The manually computed inverse of H
-    """
-    h11, h12, h13 = H[0, :]
-    h21, h22, h23 = H[1, :]
-    h31, h32, h33 = H[2, :]
-
-    # Compute the determinant of H
-    det_H = (h11 * (h22 * h33 - h23 * h32)
-           - h12 * (h21 * h33 - h23 * h31)
-           + h13 * (h21 * h32 - h22 * h31))
-
-    if abs(det_H) < 1e-6:  # Avoid division by zero
-        raise ValueError("Matrix is singular and cannot be inverted.")
-
-    # Compute the cofactor matrix
-    C = np.array([
-        [ (h22 * h33 - h23 * h32), -(h12 * h33 - h13 * h32),  (h12 * h23 - h13 * h22)],
-        [-(h21 * h33 - h23 * h31),  (h11 * h33 - h13 * h31), -(h11 * h23 - h13 * h21)],
-        [ (h21 * h32 - h22 * h31), -(h11 * h32 - h12 * h31),  (h11 * h22 - h12 * h21)]
-    ])
-
-    # Compute the adjugate (transpose of the cofactor matrix)
-    adj_H = C.T
-
-    # Compute the inverse: adjugate / determinant
-    H_inv = (1 / det_H) * adj_H
-
-    return H_inv
-
-
-
-
-
-
-def compute_homography_svd(src_pts, dst_pts):
-    """
-    Computes the homography matrix using SVD.
-    :param src_pts: Source points (Nx2)
-    :param dst_pts: Destination points (Nx2)
-    :return: 3x3 Homography matrix
-    """
-    assert src_pts.shape[0] == dst_pts.shape[0] and src_pts.shape[0] >= 4, "At least 4 points are required"
-
-    num_points = src_pts.shape[0]
-    A = []
-
-    for i in range(num_points):
-        x, y = src_pts[i]
-        x_prime, y_prime = dst_pts[i]
-
-        A.append([-x, -y, -1,  0,  0,  0,  x * x_prime, y * x_prime, x_prime])
-        A.append([ 0,  0,  0, -x, -y, -1,  x * y_prime, y * y_prime, y_prime])
-
-    A = np.array(A)
-    
-    # Compute SVD
-    U, S, Vt = np.linalg.svd(A)
-    
-    # Homography matrix is the last column of V (or last row of V transposed)
-    H = Vt[-1].reshape(3, 3)
-    
-    return H / H[2, 2]  # Normalize so that H[2,2] = 1
-
-
-
-def warp_perspective_manual(image: np.ndarray, H: np.ndarray, output_shape):
     w_out, h_out = output_shape
     warped_image = np.zeros((h_out, w_out, 3), dtype=np.uint8)
 
-    # Обчислюємо обернену матрицю гомографії
-    H_inv = np.linalg.inv(H)
+    H_inv = inverse_homography(H)
 
     for y_out in range(h_out):
         for x_out in range(w_out):
-            # Трансформуємо вихідні координати у вхідні
             vec = np.array([x_out, y_out, 1])
             x_in, y_in, w = H_inv @ vec
             x_in /= w
             y_in /= w
 
-            # Використовуємо білярну інтерполяцію
             if 0 <= x_in < image.shape[1] - 1 and 0 <= y_in < image.shape[0] - 1:
                 x0, y0 = int(x_in), int(y_in)
                 dx, dy = x_in - x0, y_in - y0
 
-                # Чотири сусідні пікселі
                 top_left = image[y0, x0].astype(float)
                 top_right = image[y0, x0 + 1].astype(float)
                 bottom_left = image[y0 + 1, x0].astype(float)
                 bottom_right = image[y0 + 1, x0 + 1].astype(float)
 
-                # Білярна інтерполяція
                 top = (1 - dx) * top_left + dx * top_right
                 bottom = (1 - dx) * bottom_left + dx * bottom_right
                 interpolated = (1 - dy) * top + dy * bottom
@@ -215,58 +147,48 @@ def warp_perspective_manual(image: np.ndarray, H: np.ndarray, output_shape):
 
 
 
-def warp_image(homography: np.ndarray, sec_img: np.ndarray, first_img: np.ndarray) -> np.ndarray:
-    """
-    Warps an image based on the given homography matrix using SVD.
-    """
+def warp_image(homography: np.ndarray, sec_img: np.ndarray, first_img: np.ndarray, built_in_warper=False) -> np.ndarray:
+    '''
+    Warps an image based on the given homography matrix using DLT.
+    '''
     sec_img_shape = sec_img.shape[:2]
     first_img_shape = first_img.shape[:2]
-    Height, Width = sec_img_shape
+    h, w = sec_img_shape
 
-    # Define the initial corner points of the secondary image
-    InitialMatrix = np.array([[0, Width - 1, Width - 1, 0],
-                              [0, 0, Height - 1, Height - 1],
-                              [1, 1, 1, 1]])
+    init_matrix = np.array([[0, w - 1, w - 1, 0],
+                            [0, 0, h - 1, h - 1],
+                            [1, 1, 1, 1]])
 
-    # Compute the new corner positions
-    FinalMatrix = np.dot(homography, InitialMatrix)
-    FinalMatrix /= FinalMatrix[2]  # Normalize the homogeneous coordinates
+    final_matrix = homography @ init_matrix
+    final_matrix /= final_matrix[2]
 
-    x, y = FinalMatrix[:2]
+    x, y = final_matrix[:2]
     
-    # Determine the new dimensions of the stitched image
     min_x, max_x = int(round(min(x))), int(round(max(x)))
     min_y, max_y = int(round(min(y))), int(round(max(y)))
 
-    New_Width, New_Height = max_x, max_y
-    Correction = [0, 0]
+    new_w, new_h = max_x, max_y
+    corrections = [0, 0]
     
     if min_x < 0:
-        New_Width -= min_x
-        Correction[0] = abs(min_x)
+        new_w -= min_x
+        corrections[0] = abs(min_x)
     if min_y < 0:
-        New_Height -= min_y
-        Correction[1] = abs(min_y)
+        new_h -= min_y
+        corrections[1] = abs(min_y)
 
-    # Ensure the stitched image is large enough to fit the base image
-    New_Width = max(New_Width, first_img_shape[1] + Correction[0])
-    New_Height = max(New_Height, first_img_shape[0] + Correction[1])
+    new_w = max(new_w, first_img_shape[1] + corrections[0])
+    new_h = max(new_h, first_img_shape[0] + corrections[1])
 
-    # Shift coordinates to positive space
-    x += Correction[0]
-    y += Correction[1]
+    x += corrections[0]
+    y += corrections[1]
     
-    OldInitialPoints = np.float32([[0, 0], [Width - 1, 0], [Width - 1, Height - 1], [0, Height - 1]])
-    NewFinalPoints = np.float32(np.array([x, y]).T)
+    old_points = np.float32([[0, 0], [w - 1, 0], [w - 1, h - 1], [0, h - 1]])
+    new_points = np.float32(np.array([x, y]).T)
 
-    # Compute the corrected homography matrix using SVD
-    # HomographyMatrix = cv2.getPerspectiveTransform(OldInitialPoints, NewFinalPoints)
-    HomographyMatrix = compute_homography_svd(OldInitialPoints, NewFinalPoints)
+    H = compute_homography_dlt(old_points, new_points)
 
-    # Warp the image
+    stiched_img = cv2.warpPerspective(first_img, H, (new_w, new_h)) if built_in_warper else warp_perspective(first_img, H, (new_w, new_h))
+    stiched_img[corrections[1]:corrections[1] + sec_img_shape[0], corrections[0]:corrections[0] + sec_img_shape[1]] = sec_img
     
-    StitchedImage = cv2.warpPerspective(first_img, HomographyMatrix, (New_Width, New_Height))
-
-    StitchedImage[Correction[1]:Correction[1] + sec_img_shape[0], Correction[0]:Correction[0] + sec_img_shape[1]] = sec_img
-    
-    return StitchedImage
+    return stiched_img

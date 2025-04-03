@@ -5,8 +5,7 @@ import cv2
 import numpy as np
 
 import panoramer as pano
-
-def stitch_images(images: list[cv2.typing.MatLike]) -> cv2.typing.MatLike:
+def stitch_images(images: list[cv2.typing.MatLike], built_in_warper: bool = False) -> cv2.typing.MatLike:
     '''
     Merges multiple aligned images into a single panorama.
     '''
@@ -38,7 +37,7 @@ def stitch_images(images: list[cv2.typing.MatLike]) -> cv2.typing.MatLike:
         matched_points2 = np.array([cur_image_keypoints[m[1]] for m in matches], dtype=np.float32)
 
         homography = pano.find_homography(matched_points1, matched_points2)
-        warped_image = pano.warp_image(homography, cur_image_resized, prev_image_resized)
+        warped_image = pano.warp_image(homography, cur_image_resized, prev_image_resized, built_in_warper=built_in_warper)
         prev_image_normalized = warped_image
     
     return warped_image

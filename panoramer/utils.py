@@ -115,3 +115,29 @@ def apply_gaussian_blur(image: np.ndarray, kernel_size: int = 3, sigma: float = 
             output[i, j] = np.sum(region * kernel)
 
     return output
+
+def inverse_homography(H: np.ndarray) -> np.ndarray:
+    '''
+    Manually computes the inverse of a 3x3 homography matrix using the determinant and cofactors.
+
+    :param H: A 3x3 homography matrix
+    :return: The manually computed inverse of H
+    '''
+    h11, h12, h13 = H[0, :]
+    h21, h22, h23 = H[1, :]
+    h31, h32, h33 = H[2, :]
+
+    det_H = (h11 * (h22 * h33 - h23 * h32)
+           - h12 * (h21 * h33 - h23 * h31)
+           + h13 * (h21 * h32 - h22 * h31))
+
+    C = np.array([
+        [ (h22 * h33 - h23 * h32), -(h12 * h33 - h13 * h32),  (h12 * h23 - h13 * h22)],
+        [-(h21 * h33 - h23 * h31),  (h11 * h33 - h13 * h31), -(h11 * h23 - h13 * h21)],
+        [ (h21 * h32 - h22 * h31), -(h11 * h32 - h12 * h31),  (h11 * h22 - h12 * h21)]
+    ])
+
+    adj_H = C.T
+    H_inv = (1 / det_H) * adj_H
+
+    return H_inv.T
