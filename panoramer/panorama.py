@@ -10,7 +10,7 @@ def stitch_images(images: list[cv2.typing.MatLike], built_in_warper: bool = Fals
     Merges multiple aligned images into a single panorama.
     '''
     prev_image = images[0]
-    
+    warped_image = prev_image
     for image in images[1:]:
         prev_image_resized = pano.resize_image(prev_image, width=400, height=None)
         cur_image_resized = pano.resize_image(image, width=400, height=None)
