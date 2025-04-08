@@ -4,7 +4,9 @@ Used to align images based on the detected features.
 import cv2
 import numpy as np
 import random
-from .utils import inverse_homography
+from .utils import inverse_homography, svd
+
+
 def compute_homography_dlt(points1: np.ndarray, points2: np.ndarray):
     '''
     Computes homography using Direct Linear Transform (DLT) method.
@@ -25,7 +27,7 @@ def compute_homography_dlt(points1: np.ndarray, points2: np.ndarray):
 
     A = np.array(A)
 
-    _, _, Vt = np.linalg.svd(A) # REWRITE FOR CUSTOM !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    _, _, Vt = svd(A)
     H = Vt[-1].reshape(3, 3)
 
     return H / H[2, 2]
