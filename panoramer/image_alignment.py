@@ -191,6 +191,13 @@ def warp_image(homography: np.ndarray, sec_img: np.ndarray, first_img: np.ndarra
     H = compute_homography_dlt(old_points, new_points)
 
     stiched_img = cv2.warpPerspective(first_img, H, (new_w, new_h)) if built_in_warper else warp_perspective(first_img, H, (new_w, new_h))
-    stiched_img[corrections[1]:corrections[1] + sec_img_shape[0], corrections[0]:corrections[0] + sec_img_shape[1]] = sec_img
-    
+
+    y_end = min(corrections[1] + sec_img_shape[0], stiched_img.shape[0])
+    x_end = min(corrections[0] + sec_img_shape[1], stiched_img.shape[1])
+
+    y_crop = y_end - corrections[1]
+    x_crop = x_end - corrections[0]
+
+    stiched_img[corrections[1]:y_end, corrections[0]:x_end] = sec_img[:y_crop, :x_crop]
+
     return stiched_img

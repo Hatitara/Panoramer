@@ -136,12 +136,14 @@ def match_features(descriptors1: np.ndarray, descriptors2: np.ndarray, method: s
         bf = cv2.BFMatcher()
         matches = bf.knnMatch(descriptors1, descriptors2, k=2)
         matches = apply_lowe_ratio_test(matches, ratio=ratio)
+        matches = [(m.queryIdx, m.trainIdx) for m in matches]
     elif method == "FLANN":
         index_params = dict(algorithm=1, trees=5)
         search_params = dict(checks=50)
         flann = cv2.FlannBasedMatcher(index_params, search_params)
         matches = flann.knnMatch(descriptors1, descriptors2, k=2)
         matches = apply_lowe_ratio_test(matches, ratio=ratio)
+        matches = [(m.queryIdx, m.trainIdx) for m in matches]
     else:
         # Custom feature matching using Nearest Neighbor search
         for i, desc1 in enumerate(descriptors1):
