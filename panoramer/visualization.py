@@ -6,10 +6,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def show_image_jupyter(img: cv2.typing.MatLike) -> None:
+def show_image_jupyter(img: cv2.typing.MatLike, show_big: bool = False) -> None:
     '''
     Visualising an image in Jupyter notebook.
     '''
+    if show_big:
+        plt.figure(figsize=(12,6))
     plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
     plt.axis("off")
     plt.show()
