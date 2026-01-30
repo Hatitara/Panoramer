@@ -1,14 +1,5 @@
 # LA Project: `Panoramer` (Panorama Merging Project)
 
-## To Do:
-- [ ] Do the research about already realized similar projects
-- [x] Get some images to work with
-- [ ] Research general idea of how to do this
-- [ ] Report №1
-- [ ] Report №2
-- [ ] Report №3
-- [ ] Final Report
-
 ## Project Overview
 This project aims to merge multiple photos into a seamless panorama using Python and OpenCV. The goal is to automate the process of stitching together multiple images, taken from similar angles or positions, into a single panoramic image. The package will consist of various modules that handle image loading, feature detection, image alignment, stitching, and visualization.
 
